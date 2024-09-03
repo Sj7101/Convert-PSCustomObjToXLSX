@@ -44,23 +44,35 @@ function Export-CustomObjectToExcel {
         }
     }
 
-    # Save the workbook
+    # Resolve the output file path
+    $outputFilePath = Resolve-Path $OutputFile
+    Write-Host "Resolved output file path: $outputFilePath" -ForegroundColor Blue
+
+    # Ensure the workbook is saved properly
     try {
-        $workbook.SaveAs((Resolve-Path $OutputFile).Path)
+        $workbook.SaveAs($outputFilePath.Path)
         Write-Host "Exported data to $OutputFile." -ForegroundColor Green
     } catch {
         Write-Error "Failed to save the Excel file: $_"
+    } finally {
+        # Close the workbook and quit Excel
+        $workbook.Close($false)  # Ensure not to save changes on close
+        $excel.Quit()
+
+        # Release COM objects
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+        [System.GC]::Collect()
+        [System.GC]::WaitForPendingFinalizers()
     }
-
-    $workbook.Close()
-    $excel.Quit()
-
-    # Release COM objects
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
 }
+
+# Example usage
+$data = @(
+    [PSCustomObject]@{Name="John"; Age=30; City="New York"; Property4="Value4"; Property5="Value5"; Property6="Value6"; Property7="Value7"; Property8="Value8"; Property9="Value9"; Property10="Value10"; Property11="Value11"},
+    [PSCustomObject]@{Name="Jane"; Age=25; City="Los Angeles"; Property4="Value4"; Property5="Value5"; Property6="Value6"; Property7="Value7"; Property8="Value8"; Property9="Value9"; Property10="Value10"; Property11="Value11"},
+    [PSCustomObject]@{Name="Doe"; Age=40; City="Chicago"; Property4="Value4"; Property5="Value5"; Property6="Value6"; Property7="Value7"; Property8="Value8"; Property9="Value9"; Property10="Value10"; Property11="Value11"}
+)
 
 Export-CustomObjectToExcel -Data $data -OutputFile "C:\Path\To\Your\Output.xlsx"
