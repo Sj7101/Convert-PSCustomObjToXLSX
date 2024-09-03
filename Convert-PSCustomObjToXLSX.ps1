@@ -62,3 +62,5 @@ function Export-CustomObjectToExcel {
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 }
+
+Export-CustomObjectToExcel -Data $data -OutputFile "C:\Path\To\Your\Output.xlsx"
