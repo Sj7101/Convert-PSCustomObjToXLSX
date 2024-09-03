@@ -5,6 +5,9 @@ function Export-CustomObjectToExcel {
         [string]$OutputFile = "Output.xlsx"
     )
 
+    # Get the properties of the PSCustomObject (only NoteProperties)
+    $properties = ($Data[0] | Get-Member -MemberType NoteProperty).Name
+
     # Create a new Excel application
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
@@ -14,9 +17,6 @@ function Export-CustomObjectToExcel {
     $workbook = $excel.Workbooks.Add()
     $worksheet = $workbook.Sheets.Item(1)
 
-    # Get the properties (columns) from the first item in the PSCustomObject array
-    $properties = $Data[0].PSObject.Properties.Name
-
     # Write headers to the first row
     for ($i = 0; $i -lt $properties.Count; $i++) {
         $worksheet.Cells.Item(1, $i + 1) = $properties[$i]
@@ -25,12 +25,25 @@ function Export-CustomObjectToExcel {
     # Write data rows starting from the second row
     for ($row = 0; $row -lt $Data.Count; $row++) {
         for ($col = 0; $col -lt $properties.Count; $col++) {
-            $worksheet.Cells.Item($row + 2, $col + 1) = $Data[$row].$($properties[$col])
+            $value = $Data[$row].$($properties[$col])
+            
+            # Handle potential null or empty values
+            if ($null -eq $value) {
+                $value = ""
+            }
+
+            $worksheet.Cells.Item($row + 2, $col + 1) = $value
         }
     }
 
     # Save the workbook
-    $workbook.SaveAs((Resolve-Path $OutputFile).Path)
+    try {
+        $workbook.SaveAs((Resolve-Path $OutputFile).Path)
+        Write-Host "Exported data to $OutputFile."
+    } catch {
+        Write-Error "Failed to save the Excel file: $_"
+    }
+
     $workbook.Close()
     $excel.Quit()
 
@@ -40,6 +53,4 @@ function Export-CustomObjectToExcel {
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
-
-    Write-Host "Exported data to $OutputFile."
 }
